@@ -4,6 +4,8 @@ Extracts data from multi-agent mavlink streams and forwards it via any user writ
 
 Works alongside the ardupilot_sitl_docker by default.
 
+Requires Python 3.
+
 To run with simulated drones, use:
 
 **python .\minUDP.py -s**
