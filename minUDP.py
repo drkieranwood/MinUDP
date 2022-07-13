@@ -11,7 +11,22 @@ import sys
 import socket
 import subprocess
 import shlex
+import threading
 
+def hb_thread_func(udpcon,timeout=2):
+    while (True):
+        udpcon.mav.heartbeat_send(
+            mavutil.mavlink.MAV_TYPE_GCS,
+            mavutil.mavlink.MAV_AUTOPILOT_INVALID,
+            0, 0, 0)
+
+        udpcon.mav.ping_send(
+            0,      #timestamp
+            1,      #sequence number
+            126,    #SITL MAVLINK sys ID
+            0)
+        print('Sent HB')
+        time.sleep(timeout)
 
 def main():
     parser = argparse.ArgumentParser(description="MinUDP - Hololens2 companion streamer",
@@ -24,11 +39,12 @@ def main():
     mav_ip = '127.0.0.1'
     mav_port = 16000
 
-    real_ip = '111.222.333.444'
-    real_ports = [11223]
+    real_ip = '192.168.1.160'
+    real_ports = [14240]
 
-    udp_ip = '127.0.0.1'
-    udp_port = 18555
+    udp_ip_pc = '192.168.1.241'
+    udp_ip_hl = '192.168.1.137'
+    udp_port = 1010
 
     bootTime = time.time()
     print('Starting....')
@@ -39,20 +55,29 @@ def main():
         subprocess.Popen(shlex.split(routing_string),
                          stdout=subprocess.DEVNULL,
                          stderr=subprocess.STDOUT)
+        print('...sim only')
 
     if args.real:
         tmpstring = ''
         for port in real_ports:
-            tmpstring +='udps:'
+            tmpstring +='udp:'
             tmpstring += real_ip
             tmpstring += (':%d ' % port)
         routing_string = "mavp2p --hb-systemid=124 --streamreq-disable tcpc:127.0.0.1:14555 %s tcps:127.0.0.1:16000 tcps:127.0.0.1:16001" % tmpstring
+        print(routing_string)
         subprocess.Popen(shlex.split(routing_string),
                          stdout=subprocess.DEVNULL,
                          stderr=subprocess.STDOUT)
+        print('...sim and real')
 
     connection_string = 'tcp:%s:%d' % (mav_ip,mav_port)
     MVLK = mavutil.mavlink_connection(connection_string,source_system=254,dialect='ardupilotmega')
+
+    sock_pc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock_hl = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    
+    hb_thread = threading.Thread(target=hb_thread_func, name='HB thread', args=(MVLK,5,),daemon=True)
+    hb_thread.start()
 
     while(True):
         msg_count = -1
@@ -86,10 +111,11 @@ def main():
                     udp_msg += '%f,' % alt
                     udp_msg += '%f' % bat
             
-                    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                    sock.sendto(bytes(udp_msg, "utf-8"), (udp_ip, udp_port))
+                    sock_pc.sendto(udp_msg.encode('utf-8'), (udp_ip_pc, udp_port))
+                    sock_hl.sendto(udp_msg.encode('utf-8'), (udp_ip_hl, udp_port))
                     print('Sent GPS UDP: %s' % udp_msg)
-
+        
+        time.sleep(0.01)
 
 if __name__ == "__main__":
     main()
