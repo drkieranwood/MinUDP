@@ -4,7 +4,9 @@ Extracts data from multi-agent mavlink streams and forwards it via any user writ
 
 Works alongside the ardupilot_sitl_docker by default.
 
-Requires Python 3.
+Requires Python 3 and pymavlink
+
+**pip install pymavlink**
 
 To run with simulated drones, use:
 
