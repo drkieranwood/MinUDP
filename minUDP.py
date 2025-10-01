@@ -2,7 +2,7 @@ print("=================")
 print("MinUDP")
 print("=================")
 
-from pymavlink import mavutil
+from mavlink.pymavlink import mavutil
 import os
 os.environ['MAVLINK20'] = '1'
 import time
@@ -42,8 +42,8 @@ def main():
     real_ip = '192.168.1.160'
     real_ports = [14240]
 
-    udp_ip_pc = '192.168.1.241'
-    udp_ip_hl = '192.168.1.137'
+    udp_ip_pc = '127.0.0.1'
+    udp_ip_hl = '192.168.0.34'
     udp_port = 1010
 
     bootTime = time.time()
